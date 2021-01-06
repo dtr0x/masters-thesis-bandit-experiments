@@ -16,6 +16,11 @@ def max_run_len(x):
 
     return k_min, k_max, max_len
 
+# def ada_rho(x, min_m=100, step=50):
+#     n = x.size
+#     num = int((n - min_m)/step)
+#     sample_fracs = np.linspace(min_m, n-1, num).astype(int)
+
 # Adaptive estimation of the second-order parameter based on stable sample paths
 def ada_rho(x):
     n = x.size

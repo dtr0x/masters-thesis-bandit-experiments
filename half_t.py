@@ -8,6 +8,9 @@ class HalfT(Distribution):
         self.xi = 1/df
         self.rho = -2/df
 
+    def get_label(self):
+        return "half-t({})".format(round(self.df, 2))
+
     def cdf(self, x):
         return 2*student.cdf(x, self.df)
 

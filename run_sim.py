@@ -25,7 +25,6 @@ def get_cvars(dist_data, alph, sampsizes):
     xi = []
     sigma = []
     rho = []
-    k = []
 
     for d in dist_data:
         result = [pool.apply_async(cvar_iter, args=(x, alph, sampsizes)) for x in d]
@@ -36,20 +35,21 @@ def get_cvars(dist_data, alph, sampsizes):
         xi.append(result[:,:,3])
         sigma.append(result[:,:,4])
         rho.append(result[:,:,5])
-        k.append(result[:,:,6])
 
-    return np.array([sa, bpot, upot, xi, sigma, rho, k])
+    return np.array([sa, bpot, upot, xi, sigma, rho])
 
 if __name__ == '__main__':
     # CVaR level
     alph = 0.999
 
-    dists = [Burr(0.6, 2.5), Burr(0.7, 2), Burr(1.75, 0.9), Burr(2, 0.8), Burr(3, 0.5), \
-             Frechet(1.3), Frechet(1.6), Frechet(1.9), Frechet(2.2), Frechet(2.5), \
-             HalfT(1.4), HalfT(1.7), HalfT(2.0), HalfT(2.3), HalfT(2.6)]
+    c = np.array([0.45, 0.6, 0.7, 1.45, 2.75])
+    d = np.array([3, 2.5, 2, 1, 0.5])
+    dists = [Burr(i,j) for (i,j) in zip(c,d)]
+    dists += [Frechet(1.25), Frechet(1.5), Frechet(1.75), Frechet(2), Frechet(2.25), \
+             HalfT(1.25), HalfT(1.5), HalfT(1.75), HalfT(2), HalfT(2.25)]
 
     # sample sizes to test CVaR estimation
-    sampsizes = np.linspace(5000, 25000, 5).astype(int)
+    sampsizes = np.linspace(10000, 50000, 5).astype(int)
     n_max = sampsizes[-1]
 
     # number of independent runs

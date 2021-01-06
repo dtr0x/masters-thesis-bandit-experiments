@@ -12,6 +12,9 @@ class Burr(Distribution):
         rho = self.rho
         self.b = 1/(1-rho)/(1+xi-rho) * np.array((xi+1, -rho))
 
+    def get_label(self):
+        return "Burr({}, {})".format(round(self.c, 2), round(self.d, 2))
+
     def cdf(self, x):
         c = self.c
         d = self.d
