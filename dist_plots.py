@@ -53,20 +53,20 @@ if __name__ == '__main__':
     cvars_est = np.load('data/cvars.npy')
 
     # CVaR level
-    alph = 0.999
+    alph = 0.998
 
-    c = np.array([0.45, 0.6, 0.7, 1.45, 2.75])
-    d = np.array([3, 2.5, 2, 1, 0.5])
+    c = np.array([0.4, 0.5, 0.75, 1.5, 2.5])
+    d = np.array([4, 3, 2, 1, 0.6])
+    fs_parms = np.linspace(1.25, 2.25, 5)
     dists = [Burr(i,j) for (i,j) in zip(c,d)]
-    dists += [Frechet(1.25), Frechet(1.5), Frechet(1.75), Frechet(2), Frechet(2.25), \
-             HalfT(1.25), HalfT(1.5), HalfT(1.75), HalfT(2), HalfT(2.25)]
+    dists += [Frechet(p) for p in fs_parms]
+    dists += [HalfT(p) for p in fs_parms]
 
     cvars_est[1][np.where(np.isnan(cvars_est[1]))] = cvars_est[0][np.where(np.isnan(cvars_est[1]))]
     cvars_est[2][np.where(np.isnan(cvars_est[2]))] = cvars_est[1][np.where(np.isnan(cvars_est[2]))]
 
     # sample sizes to test CVaR estimation
-    sampsizes = np.linspace(10000, 50000, 5).astype(int)
-
+    sampsizes = np.linspace(5000, 25000, 5).astype(int)
 
     dist_titles = [d.get_label() for d in dists]
 
@@ -88,9 +88,11 @@ if __name__ == '__main__':
 
     n_rows = 6
     n_cols = 5
-    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, figsize=(7, 6))
+    fig, axs = plt.subplots(n_rows, n_cols, sharex=True, figsize=(9, 8))
 
     for i in np.arange(0, n_rows, 2):
+        axs[i,0].set_ylabel('RMSE')
+        axs[i+1,0].set_ylabel('absolute bias')
         for j in range(n_cols):
             idx = int(i/2)*n_cols+j
             axs[i,j].plot(sampsizes, dist_rmse[idx,0], linestyle='--', linewidth=0.5, marker='.', markersize=5, color='b')
@@ -101,17 +103,11 @@ if __name__ == '__main__':
             axs[i+1,j].plot(sampsizes, dist_bias[idx,2], linestyle='--', linewidth=0.5, marker='.', markersize=5, color='k')
             axs[i,j].set_title(dist_titles[idx])
 
+        axs[i,0].legend(['SA', 'BPOT', 'UPOT'])
 
-    #     axs[3,i].set_xlabel('sample size')
-    #
-    #     axs[0,i].set_title(burr_titles[i])
-    #     axs[2,i].set_title(frec_titles[i])
-    #
-    # axs[0,0].set_ylabel('RMSE')
-    # axs[1,0].set_ylabel('absolute bias')
-    # axs[2,0].set_ylabel('RMSE')
-    # axs[3,0].set_ylabel('absolute bias')
-    # axs[0,0].legend(['UPOT', 'BPOT', 'SA'])
+
+    for i in range(n_cols):
+        axs[n_rows-1, i].set_xlabel('sample size')
 
     plt.tight_layout(pad=0.5)
     plt.ticklabel_format(axis='x', style='sci', scilimits=(0,0))

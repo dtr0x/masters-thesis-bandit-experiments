@@ -106,119 +106,60 @@ def forward_stop(pvals, signif):
     return kf, stop
 
 
-# def ad_test(x, alph, rho, tp_start, tp_end, tp_num):
-#     n = len(x)
-#     tps = np.linspace(tp_start, tp_end, tp_num)
-#     tests = []
-#     for tp in tps:
-#         u, stat_b, xi_mle, sig_mle = gpd_ad(x, tp)
-#         pval_b = ad_pvalue(stat_b, xi_mle)
-#         bpot = cvar_evt(alph, u, xi_mle, sig_mle, tp)
-#
-#         u, stat_u, xi, sig, A, k = gpd_ad2(x, tp, rho)
-#         pval_u = ad_pvalue(stat_u, xi)
-#         ae = approx_error_est(xi, sig, rho, A, alph, n, k)
-#         upot = cvar_evt(alph, u, xi, sig, tp) - ae
-#
-#         tests.append([u, tp, pval_b, pval_u, xi_mle, sig_mle, xi, sig, A, k, ae, bpot, upot])
-#
-#     tests = pd.DataFrame(tests, columns=['u', 'tp', 'pval_b', 'pval_u', 'xi_mle', \
-#         'sig_mle', 'xi', 'sig', 'A', 'k', 'approx_error', 'bpot', 'upot'])
-#
-#     tests_b = tests[tests['xi_mle'] <= 0.9]
-#     tests_u = tests[tests['xi'] <= 0.9]
-#
-#     pvals_b = tests_b['pval_b']
-#     pvals_u = tests_u['pval_u']
-#
-#     b_idx = forward_stop(pvals_b, 0.1)[1]
-#     u_idx = forward_stop(pvals_u, 0.1)[1]
-#
-#     stop_b = tests_b.index[b_idx] if b_idx >= 0 else np.nan
-#     stop_u = tests_u.index[u_idx] if u_idx >= 0 else np.nan
-#
-#     return tests, stop_b, stop_u
-#
-#
-# def cvar_ad(x, alph, tp_start=0.89, tp_end=0.98, tp_num=10, signif=0.1,
-#     cutoff=0.9):
-#     rho = ada_rho(x)
-#     tests = ad_test(x, alph, rho, tp_start, tp_end, tp_num)
-#
-#     tests_b = tests[tests['xi_mle'] <= cutoff]
-#     tests_u = tests[tests['xi'] <= cutoff]
-#
-#     pvals_b = tests_b['pval_b']
-#     pvals_u = tests_u['pval_u']
-#
-#     b_idx = forward_stop(pvals_b, signif)[1]
-#     u_idx = forward_stop(pvals_u, signif)[1]
-#
-#     stop_b = tests_b.index[b_idx] if b_idx >= 0 else np.nan
-#     stop_u = tests_u.index[u_idx] if u_idx >= 0 else np.nan
-#
-#     bpot = tests.loc[stop_b].bpot if not np.isnan(stop_b) else np.nan
-#
-#     if not np.isnan(stop_u):
-#         row = tests.loc[stop_u]
-#         if row.upot > 0:
-#             upot = row.upot
-#         else:
-#             upot = np.nan
-#         xi = row.xi
-#         sigma = row.sig
-#         k = row.k
-#     else:
-#         upot, xi, sigma, k = [np.nan]*4
-#
-#     # sample average CVaR
-#     sa = cvar_sa(x, alph)
-#
-#     return sa, bpot, upot, xi, sigma, rho, k
-
-def ad_test(x, alph, tp_start, tp_end, tp_num):
+def ad_test(x, alph, rho, tp_start, tp_end, tp_num):
+    n = len(x)
     tps = np.linspace(tp_start, tp_end, tp_num)
     tests = []
     for tp in tps:
         u, stat, xi_mle, sig_mle = gpd_ad(x, tp)
         pval = ad_pvalue(stat, xi_mle)
-        cvar = cvar_evt(alph, u, xi_mle, sig_mle, tp)
-        tests.append([u, tp, pval, xi_mle, sig_mle, cvar])
+        bpot = cvar_evt(alph, u, xi_mle, sig_mle, tp)
+
+        k = len(x[x > u])
+        A = A_est(x, k, xi_mle, rho)
+        xi, sig = debias_params(xi_mle, sig_mle, rho, A)
+
+        ae = approx_error_est(xi, sig, rho, A, alph, n, k)
+        upot = cvar_evt(alph, u, xi, sig, tp) - ae
+
+        tests.append([u, tp, pval, xi_mle, sig_mle, xi, sig, A, k, ae, bpot, upot])
 
     tests = pd.DataFrame(tests, columns=['u', 'tp', 'pval', 'xi_mle', \
-        'sig_mle', 'cvar'])
+        'sig_mle', 'xi', 'sig', 'A', 'k', 'approx_error', 'bpot', 'upot'])
 
     return tests
 
-def sample_frac(n, rho):
-    return np.ceil(max(0.02*n, 2*n**(-2*rho/(1-2*rho)))).astype(int)
-
 
 def cvar_ad(x, alph, tp_start=0.79, tp_end=0.98, tp_num=20, signif=0.1,
-    cutoff=0.9, theta=0.8):
-    #SA
+    cutoff=0.9):
+    rho = ada_rho(x)
+    tests = ad_test(x, alph, rho, tp_start, tp_end, tp_num)
+
+    tests_b = tests[tests['xi_mle'] <= cutoff]
+    tests_u = tests[tests['xi'] <= cutoff]
+
+    b_idx = forward_stop(tests_b['pval'], signif)[1]
+    u_idx = forward_stop(tests_u['pval'], signif)[1]
+
+    stop_b = tests_b.index[b_idx] if b_idx >= 0 else np.nan
+    stop_u = tests_u.index[u_idx] if u_idx >= 0 else np.nan
+
+    bpot = tests.loc[stop_b].bpot if not np.isnan(stop_b) else np.nan
+
+    if not np.isnan(stop_u):
+        row = tests.loc[stop_u]
+        if row.upot > 0:
+            upot = row.upot
+        else:
+            upot = np.nan
+        xi = row.xi
+        sigma = row.sig
+        k = row.k
+        ae = row.approx_error
+    else:
+        upot, xi, sigma, k, ae = [np.nan]*5
+
+    # sample average CVaR
     sa = cvar_sa(x, alph)
 
-    # BPOT
-    tests = ad_test(x, alph, tp_start, tp_end, tp_num)
-    tests = tests[tests['xi_mle'] <= cutoff]
-    pvals = tests['pval']
-    idx = forward_stop(pvals, signif)[1]
-    stop = tests.index[idx] if idx >= 0 else np.nan
-    bpot = tests.loc[stop].cvar if not np.isnan(stop) else np.nan
-
-    # UPOT
-    rho = ada_rho(x)
-    n = len(x)
-    k = np.ceil(n**theta).astype(int)
-    tp = 1-k/n
-    u, y = get_excesses(x, tp)
-    xi_mle, sig_mle = gpd_fit(y)
-    A = A_est(x, k, xi_mle, rho)
-    xi, sig = debias_params(xi_mle, sig_mle, rho, A)
-    ae = approx_error_est(xi, sig, rho, A, alph, n, k)
-    upot = cvar_evt(alph, u, xi, sig, tp) - ae
-    if upot <= 0 or xi > cutoff or xi <= 0:
-        upot = np.nan
-
-    return sa, bpot, upot, xi, sig, rho
+    return sa, bpot, upot, xi, sigma, rho, k, ae
