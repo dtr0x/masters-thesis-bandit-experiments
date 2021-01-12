@@ -44,11 +44,11 @@ def debias_params(xi_mle, sig_mle, rho, A):
 
 def approx_error_est(xi, sig, rho, A, alph, n, k):
     s = k/n/(1-alph)
-    if np.abs(xi+rho) >= 1e-4:
+    if np.abs(xi+rho) != 0:
         x = s**xi/xi/(1-xi)
-        y = s**(xi+rho)/(1-xi-rho) - rho/xi
+        y = s**(xi+rho)/(1-xi-rho) + rho/xi
         z = 1/(xi+rho)
-        return sig*A*(x-z)/rho
+        return sig*A*(x-z*y)/rho
     else:
         x = s**xi/xi/(1-xi)
         y = np.log(s)
