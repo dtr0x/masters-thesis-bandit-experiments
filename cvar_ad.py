@@ -56,19 +56,6 @@ def gpd_ad(x, tp):
     stat = -n - (1/n) * np.sum((2 * i - 1) * (np.log(z) + np.log1p(-z[::-1])))
     return u, stat, xi, sigma
 
-def gpd_ad2(x, tp, rho):
-    u, y = get_excesses(x, tp)
-    xi_mle, sig_mle = gpd_fit(y)
-    k = len(x[x > u])
-    A = A_est(x, k, xi_mle, rho)
-    xi, sigma = debias_params(xi_mle, sig_mle, rho, A)
-    z = genpareto.cdf(y, xi, 0, sigma)
-    z = np.sort(z)
-    n = len(z)
-    i = np.linspace(1, n, n)
-    stat = -n - (1/n) * np.sum((2 * i - 1) * (np.log(z) + np.log1p(-z[::-1])))
-    return u, stat, xi, sigma, A, k
-
 
 def ad_pvalue(stat, xi):
     row = np.where(ad_shape == round(np.clip(xi, -0.5, 1), 2))[0].item()

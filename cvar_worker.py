@@ -32,10 +32,10 @@ if __name__ == '__main__':
     row_end = args.row_end
 
     # CVaR level
-    alph = 0.999
+    alph = 0.998
 
     # bandit params
-    budgets = np.arange(20000, 100001, 20000)
+    budgets = np.linspace(10000, 50000, 5).astype(int)
     n_arms = 5
     # the sample sizes for which we will evaluate the cvar
     sampsizes = np.array([bandit_samp_sizes(n_arms, b) for b in budgets]).flatten()

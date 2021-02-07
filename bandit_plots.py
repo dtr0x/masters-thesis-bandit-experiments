@@ -12,17 +12,17 @@ def error_prob(result, best_arm):
     return 1 - np.asarray(result == best_arm).sum(axis=1)/n_trials
 
 if __name__ == '__main__':
-    c = np.array([0.45, 0.6, 0.7, 1.45, 2.75])
-    d = np.array([3, 2.5, 2, 1, 0.5])
+    c = np.array([0.4, 0.5, 0.75, 1.5, 2.5])
+    d = np.array([4, 3, 2, 1, 0.6])
     burr_dists = [Burr(i,j) for (i,j) in zip(c,d)]
     frec_dists = [Frechet(1.25), Frechet(1.5), Frechet(1.75), Frechet(2), Frechet(2.25)]
     t_dists = [HalfT(1.25), HalfT(1.5), HalfT(1.75), HalfT(2), HalfT(2.25)]
 
     # sample sizes to test CVaR estimation
-    budgets = np.arange(20000, 100001, 20000)
+    budgets = np.linspace(10000, 50000, 5).astype(int)
 
     # CVaR level
-    alph = 0.999
+    alph = 0.998
 
     # get bandit experiment results
     arms_selected = np.load('data/arms_selected.npy')

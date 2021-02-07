@@ -4,3 +4,4 @@ slurm*
 test*
 data/*samples*
 *.sh
+*old*
